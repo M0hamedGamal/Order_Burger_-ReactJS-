@@ -2,6 +2,10 @@ import React from "react";
 import Auxiliary from "../../../hoc/Auxiliary/Auxiliary";
 import Button from "../../UI/Button/Button";
 
+/* 
+OrderSummary Component contains:
+Auxiliary, and Button Component.
+*/
 const orderSummary = (props) => {
   const ingredientSummary = Object.keys(props.ingredients).map((igKey) => {
     return (

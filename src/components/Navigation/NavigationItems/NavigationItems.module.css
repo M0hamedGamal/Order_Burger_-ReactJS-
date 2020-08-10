@@ -1,11 +1,11 @@
 .NavigationItems {
+  height: 100%;
   margin: 0;
   padding: 0;
   list-style: none;
   display: flex;
-  align-items: center;
-  height: 100%;
   flex-flow: column;
+  align-items: center;
 }
 
 @media (min-width: 500px) {

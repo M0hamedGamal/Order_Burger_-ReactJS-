@@ -1,6 +1,15 @@
+/*
+box-sizing: border-box;
+ Calculate the "border-box":
+  Total width: 160px
+  Total height: 80px
+    Content box width: 160px - (2 * 20px) - (2 * 8px) = 104px
+    Content box height: 80px - (2 * 20px) - (2 * 8px) = 24px 
+*/
+
 .Toolbar {
-  height: 56px;
   width: 100%;
+  height: 56px;
   position: fixed;
   top: 0;
   left: 0;

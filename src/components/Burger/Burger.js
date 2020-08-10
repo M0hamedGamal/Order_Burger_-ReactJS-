@@ -4,6 +4,10 @@ import classes from "./Burger.module.css";
 
 import BurgerIngredient from "./BurgerIngredient/BurgerIngredient";
 
+/*
+Burger Component contains:
+BurgerIngredient Component.
+*/
 const burger = (props) => {
   // Object.keys() --> convert keys of object to be strings into array.
   let transformedIngredients = Object.keys(props.ingredients)
@@ -23,6 +27,9 @@ const burger = (props) => {
       // return to store arr into transformedIngredients array.
       return arr.concat(el);
     }, []);
+
+  // Try to console with/without .reduce method.
+  // console.log(transformedIngredients);
 
   // Check if after using reduce method, the length of transformedIngredients array = 0 [Meanning no ingredients into burger].
   if (transformedIngredients.length === 0) {
