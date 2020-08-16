@@ -8,7 +8,6 @@ import OrderSummary from "../../components/Burger/OrderSummary/OrderSummary";
 import Spinner from "../../components/UI/Spinner/Spinner";
 import axios from "../../axios-order";
 import WithError from "../../hoc/WithError/WithError";
-
 // Initial Price for INGREDIENTS.
 const INGREDIENTS_PRICES = {
   salad: 0.5,
@@ -148,34 +147,37 @@ class BurgerBuilder extends Component {
 
   // Press on Continue Button into OrderSummary Component.
   purchaseContinueHandler = async () => {
-    // set loading to true to active Spinner Component.
-    this.setState({ loading: true });
+    // We try to send ingredients into query params.
+    const queryParams = [];
+    // for..in --> Loop onto ingredients Object.
+    for (let i in this.state.ingredients) {
+      // push to queryParams array
+      queryParams.push(
+        // encodeURIComponent convert special chars to available url.
+        // data is pushing --> [salad=2]
+        encodeURIComponent(i) +
+          "=" +
+          encodeURIComponent(this.state.ingredients[i])
+      );
+    }
+    // Send price into query params with ingredients.
+    queryParams.push(
+      encodeURIComponent("price") +
+        "=" +
+        encodeURIComponent(this.state.totalPrice)
+    );
+    // Add & between elements of array [meat=1&cheese=2].
+    const ingredients = queryParams.join("&");
 
-    // add info of customer.
-    const custOrder = {
-      ingredients: this.state.ingredients,
-      price: this.state.totalPrice,
-      custInfo: {
-        name: "Gemy",
-        email: "Gemy@gmail.com",
-        address: {
-          city: "October",
-          street: "El-Wagih Center",
-        },
-      },
-      deliveryMethod: "fastest",
-    };
-
-    try {
-      /*  Store order into firebase database.
-          Check axios-order.js to see base url [Full URL]. 
-          .json --> Important for working with firebase database.
-      */
-      await axios.post("/orders.json", custOrder);
-
-      // Stop loading & Close Backdrop and Modal.
-      this.setState({ loading: false, purchasing: false });
-    } catch (error) {}
+    // Get addition props from Route into App.js.
+    // Now you can see props/history/push --> push page into stack of pages to add new page for the stack without using Redirect Component.
+    // console.log(this.props.history);
+    this.props.history.push({
+      // push this path of page to stack of pages.
+      pathname: "/checkout",
+      // send query params by adding '?' before data.
+      search: "?" + ingredients,
+    });
   };
 
   render() {

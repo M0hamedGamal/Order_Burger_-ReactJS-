@@ -3,7 +3,6 @@ import Auxiliary from "../Auxiliary/Auxiliary";
 import classes from "./Layout.module.css";
 import Toolbar from "../../components/Navigation/Toolbar/Toolbar";
 import SideDrawer from "../../components/Navigation/SideDrawer/SideDrawer";
-
 /* 
 Layout Component contains:
 Toolbar, SideDrawer, and BuilderBurger Component
@@ -24,6 +23,8 @@ class Layout extends Component {
 
   // Open/Close SideDrawer by toggle button for DrawerToggle Component.
   toggleDrawerHandler = () => {
+    console.log(this.props);
+
     this.setState((prevState) => {
       return { showSideDrawer: !prevState.showSideDrawer };
     });

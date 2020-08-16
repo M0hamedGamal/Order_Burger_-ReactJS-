@@ -28,6 +28,7 @@ const withError = (WrappedComponent, axios) => {
         error: null,
       });
     };
+
     render() {
       return (
         <Auxiliary>

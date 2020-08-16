@@ -16,7 +16,7 @@
 
 .NavigationItem a:hover,
 .NavigationItem a:active,
-.NavigationItem a.Active {
+.NavigationItem a.active {
   color: #40a4c8;
 }
 
@@ -39,7 +39,7 @@
 
   .NavigationItem a:hover,
   .NavigationItem a:active,
-  .NavigationItem a.Active {
+  .NavigationItem a.active {
     background-color: #8f5c2c;
     border-bottom: 4px solid #40a4c8;
     color: white;
