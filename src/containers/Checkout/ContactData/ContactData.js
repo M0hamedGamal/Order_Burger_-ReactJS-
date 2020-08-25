@@ -1,9 +1,11 @@
 import React, { Component } from "react";
 import Button from "../../../components/UI/Button/Button";
 import Spinner from "../../../components/UI/Spinner/Spinner";
-import axios from "../../../axios-order";
 import Input from "../../../components/UI/Input/Input";
 import classes from "./ContactData.module.css";
+import { connect } from "react-redux";
+import * as orderAction from "../../../store/actions/index";
+import ErrorHandler from "../../../hoc/ErrorHandler/ErrorHandler";
 
 class ContactData extends Component {
   state = {
@@ -32,6 +34,7 @@ class ContactData extends Component {
         value: "",
         validation: {
           required: true,
+          isEmail: true,
         },
         valid: false,
         touched: false,
@@ -85,7 +88,7 @@ class ContactData extends Component {
             { value: "cheapest", displayValue: "Cheapest" },
           ],
         },
-        value: "",
+        value: "fastest",
         validation: {
           required: true,
         },
@@ -93,15 +96,10 @@ class ContactData extends Component {
       },
     },
     formIsValid: false,
-    loading: false,
   };
 
-  orderHandler = async (event) => {
-    console.log(this.props);
+  orderHandler = (event) => {
     event.preventDefault();
-
-    // set loading to true to active Spinner Component.
-    this.setState({ loading: true });
 
     const formData = {};
 
@@ -112,24 +110,13 @@ class ContactData extends Component {
 
     // create order that will be sent to firebase database.
     const order = {
-      ingredients: this.props.ingredients,
-      price: this.props.totalPrice,
+      ingredients: this.props.ings,
+      price: this.props.price,
       orderData: formData,
+      userId: this.props.userId,
     };
 
-    try {
-      /*  Store order into firebase database.
-          Check axios-order.js to see base url [Full URL]. 
-          .json --> Important for working with firebase database.
-      */
-      await axios.post("/orders.json", order);
-
-      // Stop loading & Close Backdrop and Modal.
-      this.setState({ loading: false });
-      this.props.history.push("/orders");
-    } catch (error) {
-      this.setState({ loading: false });
-    }
+    this.props.onOrderBurger(this.props.token, order);
   };
 
   // When change input field.
@@ -184,6 +171,12 @@ class ContactData extends Component {
         value.length === rule.minLength && value.length === rule.maxLength;
     }
 
+    // Check for email.
+    if (rule.isEmail) {
+      const re = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+      isValid = re.test(String(value).toLowerCase());
+    }
+
     return isValid;
   };
 
@@ -221,12 +214,36 @@ class ContactData extends Component {
       </form>
     );
     // if it true. appear Spinner instead info.
-    if (this.state.loading) {
+    if (this.props.loading) {
       form = <Spinner />;
     }
-
-    return <div className={classes.ContactData}>{form}</div>;
+    return (
+      <div className={classes.ContactData}>
+        {!this.props.token ? <ErrorHandler /> : form}
+      </div>
+    );
   }
 }
 
-export default ContactData;
+// mapStateToProps --> is a function that receive state as a param & Connect with reducer's state into reducer.js.
+// This function gets value of state into reducer & store it into props of this Component.
+const mapStateToProps = (state) => {
+  return {
+    // ings --> name of prop that will work with into this Component [this.props.ctr] & ings get from state of reducer.js.
+    // ingsReducer and resReducer are sub states. check index.js.
+    ings: state.burgerBuilder.ingredients,
+    price: state.burgerBuilder.totalPrice,
+    loading: state.order.loading,
+    token: state.auth.token,
+    userId: state.auth.userId,
+  };
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    onOrderBurger: (token, orderData) =>
+      dispatch(orderAction.purchaseBurger(token, orderData)),
+  };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(ContactData);

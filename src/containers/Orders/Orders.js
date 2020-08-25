@@ -1,56 +1,55 @@
 import React, { Component } from "react";
 import Order from "../../components/Order/Order";
-import axios from "../../axios-order";
-import WithError from "../../hoc/WithError/WithError";
+import * as actions from "../../store/actions/index";
+import { connect } from "react-redux";
+import Spinner from "../../components/UI/Spinner/Spinner";
+import ErrorHandler from "../../hoc/ErrorHandler/ErrorHandler";
 
 class Orders extends Component {
-  state = {
-    orders: [],
-    loading: true,
-  };
-
-  async componentDidMount() {
-    try {
-      // Fetch orders from firebase database.
-      let fetchedData = await axios.get("/orders.json");
-
-      const fetchedOrders = [];
-      // .data --> property of firebase when getting data from it.
-      for (let key in fetchedData.data) {
-        // Retriving data from firebase is as Object not Array.
-        fetchedOrders.push({
-          // key in this case is the header that includes order info.
-          ...fetchedData.data[key],
-          // make id is unique.
-          id: key,
-        });
-      }
-
-      this.setState({
-        loading: false,
-        orders: fetchedOrders,
-      });
-    } catch (error) {
-      this.setState({
-        loading: false,
-      });
-    }
+  componentDidMount() {
+    this.props.onFetchOrders(this.props.token, this.props.userId);
   }
 
   render() {
-    return (
-      <div>
-        {/* Loop on orders & send it to Order Component. */}
-        {this.state.orders.map((order) => (
-          <Order
-            key={order.id}
-            ingredients={order.ingredients}
-            price={+order.price}
-          />
-        ))}
-      </div>
-    );
+    // Initial value of order when user didn't sign in [There's no token for user],
+    // If there's error Call ErrorHandler Component else Appear Spinner for user.
+    let order =
+      !this.props.token || this.props.error ? <ErrorHandler /> : <Spinner />;
+
+    if (!this.props.loading && !this.props.error && this.props.token) {
+      order = (
+        <div>
+          {/* Loop on orders & send it to Order Component. */}
+          {this.props.orders.map((order) => (
+            <Order
+              key={order.id}
+              ingredients={order.ingredients}
+              price={+order.price}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    return order;
   }
 }
 
-export default WithError(Orders, axios);
+const mapStateToProps = (state) => {
+  return {
+    orders: state.order.orders,
+    loading: state.order.loading,
+    error: state.order.error,
+    token: state.auth.token,
+    userId: state.auth.userId,
+  };
+};
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    onFetchOrders: (token, userId) =>
+      dispatch(actions.fetchOrder(token, userId)),
+  };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(Orders);

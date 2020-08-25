@@ -6,15 +6,9 @@ import BuildControls from "../../components/Burger/BuildControls/BuildControls";
 import Modal from "../../components/UI/Modal/Modal";
 import OrderSummary from "../../components/Burger/OrderSummary/OrderSummary";
 import Spinner from "../../components/UI/Spinner/Spinner";
-import axios from "../../axios-order";
-import WithError from "../../hoc/WithError/WithError";
-// Initial Price for INGREDIENTS.
-const INGREDIENTS_PRICES = {
-  salad: 0.5,
-  cheese: 0.4,
-  bacon: 0.7,
-  meat: 1.3,
-};
+import * as actions from "../../store/actions/index";
+import { connect } from "react-redux";
+import ErrorHandler from "../../hoc/ErrorHandler/ErrorHandler";
 
 /* 
 BurgerBuilder Component contains:
@@ -22,30 +16,15 @@ Auxiliary, Burger, BuildControls, OrderSummary, Modal, and Spinner Component.
 */
 class BurgerBuilder extends Component {
   state = {
-    // Initial of Object ingredients of burger {salad, cheese, bacon, meat}.
-    ingredients: null,
-    // Initial total Price.
-    totalPrice: 4,
-    // Enable/Disable Order Button.
-    purchasable: false,
     // Enable/Disable Backdrop Component.
     purchasing: false,
     // property for Spinner Component.
-    loading: false,
+    // loading: false,
   };
 
   // Internal method allow us to get all ingredients from firebase database.
-  async componentDidMount() {
-    /*  get ingredients from firebase database.
-        Check axios-order.js to see base url [Full URL]. 
-        .json --> Important for working with firebase database.
-    */
-    const ingredients = await axios.get("/ingredients.json");
-    this.setState({
-      // ingredients.data --> .data property of response firebase database.
-      // Return Object of data.
-      ingredients: ingredients.data,
-    });
+  componentDidMount() {
+    this.props.onInitIngredient();
   }
 
   // Disabled Less Button for First Time.
@@ -53,7 +32,7 @@ class BurgerBuilder extends Component {
     // Active/Deactive Less button.
     const disabledInfo = {
       // Copy of ingredients Object.
-      ...this.state.ingredients,
+      ...this.props.ings,
     };
 
     // Loop to store all keys with value [true or false] into disabledInfo object.
@@ -66,7 +45,7 @@ class BurgerBuilder extends Component {
 
   // Updating method for Enabling/Disabling Order Button.
   updatePurchasableState = (updatedIngredients) => {
-    // updatedIngredients get from addIngredientHandler and removeIngredientHandler methods.
+    // updatedIngredients get from onIngredientAddedHandler and removeIngredientHandler methods.
     const ingredients = updatedIngredients;
 
     // Object.keys() --> convert keys of object ingredients to be strings into array.
@@ -74,69 +53,23 @@ class BurgerBuilder extends Component {
       // ingredients[igKey] --> value of key (amount of ingredient)
       .map((igKey) => ingredients[igKey])
       /* reduce method work on sumOfAmount array takes 2 args [1st --> callback, 2nd --> initial value]. 
-       sum --> refers to sumOfAmount array with initial value ( 2nd argment '0' ).
-       el  --> refers to each element into sumOfAmount array. 
-      */
+    sum --> refers to sumOfAmount array with initial value ( 2nd argment '0' ).
+    el  --> refers to each element into sumOfAmount array. 
+    */
       .reduce((sum, el) => {
         return sum + el;
       }, 0);
 
-    this.setState({
-      // change purchasable to true/false to Enable/Disable Order Button.
-      purchasable: sumOfAmount > 0,
-    });
-  };
-
-  // For BuildControls Component.
-  // Allow user to add some ingredients.
-  addIngredientHandler = (type) => {
-    const oldCount = this.state.ingredients[type];
-    const updatedCount = oldCount + 1;
-    // Copy of ingredients Object.
-    const updatedIngredients = { ...this.state.ingredients };
-    updatedIngredients[type] = updatedCount;
-
-    const priceAddition = INGREDIENTS_PRICES[type];
-    const oldPrice = this.state.totalPrice;
-    const newPrice = oldPrice + priceAddition;
-
-    this.setState({
-      totalPrice: newPrice,
-      ingredients: updatedIngredients,
-    });
-
-    // Call updatePurchasableState method.
-    this.updatePurchasableState(updatedIngredients);
-  };
-
-  // For BuildControls Component.
-  // Allow user to remove some ingredients.
-  removeIngredientHandler = (type) => {
-    const oldCount = this.state.ingredients[type];
-    if (oldCount <= 0) {
-      return;
-    }
-    const updatedCount = oldCount - 1;
-    // Copy of ingredients Object.
-    const updatedIngredients = { ...this.state.ingredients };
-    updatedIngredients[type] = updatedCount;
-
-    const priceDeduction = INGREDIENTS_PRICES[type];
-    const oldPrice = this.state.totalPrice;
-    const newPrice = oldPrice - priceDeduction;
-
-    this.setState({
-      totalPrice: newPrice,
-      ingredients: updatedIngredients,
-    });
-
-    // Call updatePurchasableState method.
-    this.updatePurchasableState(updatedIngredients);
+    return sumOfAmount > 0;
   };
 
   // Method for Active Modal & Backdrop Component.
   purchasingHandler = () => {
-    this.setState({ purchasing: true });
+    if (this.props.isAuthenticated) {
+      this.setState({ purchasing: true });
+    } else {
+      this.props.history.push("/auth");
+    }
   };
 
   // Method for DeActive Modal & Backdrop Component.
@@ -146,78 +79,50 @@ class BurgerBuilder extends Component {
   };
 
   // Press on Continue Button into OrderSummary Component.
-  purchaseContinueHandler = async () => {
-    // We try to send ingredients into query params.
-    const queryParams = [];
-    // for..in --> Loop onto ingredients Object.
-    for (let i in this.state.ingredients) {
-      // push to queryParams array
-      queryParams.push(
-        // encodeURIComponent convert special chars to available url.
-        // data is pushing --> [salad=2]
-        encodeURIComponent(i) +
-          "=" +
-          encodeURIComponent(this.state.ingredients[i])
-      );
-    }
-    // Send price into query params with ingredients.
-    queryParams.push(
-      encodeURIComponent("price") +
-        "=" +
-        encodeURIComponent(this.state.totalPrice)
-    );
-    // Add & between elements of array [meat=1&cheese=2].
-    const ingredients = queryParams.join("&");
-
+  purchaseContinueHandler = () => {
+    // reset purchased to false for preventing redirected to root. Check [Checkout.js file]
+    this.props.onInitPurchase();
     // Get addition props from Route into App.js.
     // Now you can see props/history/push --> push page into stack of pages to add new page for the stack without using Redirect Component.
     // console.log(this.props.history);
-    this.props.history.push({
-      // push this path of page to stack of pages.
-      pathname: "/checkout",
-      // send query params by adding '?' before data.
-      search: "?" + ingredients,
-    });
+    this.props.history.push("/checkout");
   };
 
   render() {
     // Initial value of orderSummary when ingredients didn't come from firebase database yet.
     let orderSummary = null;
 
-    // Initial value of burger when ingredients didn't come from firebase database yet, Appear Spinner for user.
-    let burger = <Spinner />;
+    // Initial value of burger when ingredients didn't come from firebase database yet,
+    // If there's error Call ErrorHandler Component else Appear Spinner for user.
+    let burger = this.props.error ? <ErrorHandler /> : <Spinner />;
 
     // Check if ingredients were come from firebase database.
-    if (this.state.ingredients) {
+    if (this.props.ings) {
       // Change value of burger.
       burger = (
         <Auxiliary>
-          <Burger ingredients={this.state.ingredients} />
+          <Burger ingredients={this.props.ings} />
 
           <BuildControls
-            price={this.state.totalPrice}
-            ingredientAdded={this.addIngredientHandler}
-            ingredientRemoved={this.removeIngredientHandler}
+            price={this.props.price}
+            ingredientAdded={this.props.onIngredientAdded}
+            ingredientRemoved={this.props.onIngredientRemoved}
             disabled={this.disabledLessButton()}
-            purchasable={this.state.purchasable}
+            purchasable={this.updatePurchasableState(this.props.ings)}
             ordered={this.purchasingHandler}
+            isAuth={this.props.isAuthenticated}
           />
         </Auxiliary>
       );
       // Change value of orderSummary.
       orderSummary = (
         <OrderSummary
-          ingredients={this.state.ingredients}
-          price={this.state.totalPrice}
+          ingredients={this.props.ings}
+          price={this.props.price}
           purchaseCancelled={this.purchaseCancelHandler}
           purchaseContinued={this.purchaseContinueHandler}
         />
       );
-    }
-    // When Press on Continue Button into OrderSummary Component.
-    if (this.state.loading) {
-      // Appear Spinner for user instead the order.
-      orderSummary = <Spinner />;
     }
 
     return (
@@ -234,4 +139,33 @@ class BurgerBuilder extends Component {
   }
 }
 
-export default WithError(BurgerBuilder, axios);
+// mapStateToProps --> is a function that receive state as a param & Connect with reducer's state into reducer.js.
+// This function gets value of state into reducer & store it into props of this Component.
+const mapStateToProps = (state) => {
+  return {
+    // ings --> name of prop that will work with into this Component [this.props.ings] & ings get from state of reducer.js.
+    // burgerBuilder are sub states. check index.js.
+    ings: state.burgerBuilder.ingredients,
+    price: state.burgerBuilder.totalPrice,
+    error: state.burgerBuilder.error,
+    isAuthenticated: state.auth.token !== null,
+  };
+};
+
+// mapDispatchToProps --> is a function that receive dispatch function as a param & Connect with reducer's action into reducer.js.
+// This function updates value of state into reducer through action prop.
+const mapDispatchToProps = (dispatch) => {
+  return {
+    // 'type' property is V.IMPORTANT for dispatch function to work with action prop into reducer.js. Don't forget it.
+    // type & val can be connected by reducer's action prop into reducer.js.
+    onIngredientAdded: (ingName) => dispatch(actions.addIngredient(ingName)),
+    onIngredientRemoved: (ingName) =>
+      dispatch(actions.removeIngredient(ingName)),
+    onInitIngredient: () => dispatch(actions.initIngredients()),
+    onInitPurchase: () => dispatch(actions.purchaseInit()),
+  };
+};
+
+// connect --> method [from react-redux lib.] takes mapStateToProps & mapDispatchToProps as args
+// to connect redux with Counter Component & connect global state.
+export default connect(mapStateToProps, mapDispatchToProps)(BurgerBuilder);

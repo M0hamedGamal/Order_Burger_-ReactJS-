@@ -3,6 +3,7 @@ import Auxiliary from "../Auxiliary/Auxiliary";
 import classes from "./Layout.module.css";
 import Toolbar from "../../components/Navigation/Toolbar/Toolbar";
 import SideDrawer from "../../components/Navigation/SideDrawer/SideDrawer";
+import { connect } from "react-redux";
 /* 
 Layout Component contains:
 Toolbar, SideDrawer, and BuilderBurger Component
@@ -34,8 +35,12 @@ class Layout extends Component {
     return (
       //HOC.
       <Auxiliary>
-        <Toolbar toggleDrawer={this.toggleDrawerHandler} />
+        <Toolbar
+          isAuth={this.props.isAuthenticated}
+          toggleDrawer={this.toggleDrawerHandler}
+        />
         <SideDrawer
+          isAuth={this.props.isAuthenticated}
           openSideDrawer={this.state.showSideDrawer}
           closedSideDrawer={this.sideDrawerClosedHandler}
         />
@@ -45,4 +50,10 @@ class Layout extends Component {
   }
 }
 
-export default Layout;
+const mapStateToProps = (state) => {
+  return {
+    isAuthenticated: state.auth.token !== null,
+  };
+};
+
+export default connect(mapStateToProps)(Layout);

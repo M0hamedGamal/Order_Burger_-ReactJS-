@@ -1,49 +1,10 @@
 import React, { Component } from "react";
 import CheckoutSummary from "../../components/Order/CheckoutSummary/CheckoutSummary";
 import ContactData from "./ContactData/ContactData";
-import { Route } from "react-router-dom";
+import { Route, Redirect } from "react-router-dom";
+import { connect } from "react-redux";
 
 class Checkout extends Component {
-  state = {
-    ingredients: {},
-    totalPrice: 0,
-  };
-
-  componentDidMount() {
-    /*
-        Take a look on it.
-        console.log(this.props.history);
-        console.log(this.props.match);
-        console.log(this.props.location); 
-    */
-
-    /*  Get addition props from Route into App.js.
-        Now you can see props/location/search --> you can get data that sent into query params with path that response on render this Component.
-        console.log(this.props.location.search);
-    */
-    // URLSearchParams built-in Object to get data from search query params.
-    const query = new URLSearchParams(this.props.location.search);
-
-    const ingredients = {};
-    let price = 0;
-
-    // for..of --> Loop onto elements of Array.
-    for (let param of query.entries()) {
-      // Sent price into query params with ingredients. So we wanna store it into price variable.
-      if (param[0] === "price") {
-        price = param[1];
-      } else {
-        // ['salad', '1']  |   +param[1] --> convert string to number.
-        // console.log(param);
-        ingredients[param[0]] = +param[1];
-      }
-    }
-
-    this.setState({
-      ingredients: ingredients,
-      totalPrice: price,
-    });
-  }
   checkoutCanceledHandler = () => {
     // console.log(this.props);
     // goBack is a function into history props get from Route Component [Check App.js].
@@ -52,31 +13,52 @@ class Checkout extends Component {
   };
 
   checkoutContinuedHandler = () => {
+    /*
+          Take a look on it.
+          console.log(this.props.history);
+          console.log(this.props.match);
+          console.log(this.props.location); 
+        */
     this.props.history.push(this.props.match.path + "/contact-data");
   };
 
   render() {
-    return (
-      <div>
-        <CheckoutSummary
-          ingredients={this.state.ingredients}
-          checkoutCanceled={this.checkoutCanceledHandler}
-          checkoutContinued={this.checkoutContinuedHandler}
-        />
-        <Route
-          path={this.props.match.path + "/contact-data"}
-          render={() => (
-            <ContactData
-              ingredients={this.state.ingredients}
-              totalPrice={this.state.totalPrice}
-              // With render You will miss history, location, and match properties. So you need to send props of Checkout.js to ContactData.js
-              {...this.props}
-            />
-          )}
-        />
-      </div>
-    );
+    // redirect user to root if user try to reach Checkout page from URL [because ingredients will be null].
+    let summary = <Redirect to="/" />;
+    if (this.props.ings) {
+      // Redirect to orders after purchasing burger.
+      const purchasedRedirect = this.props.purchased ? (
+        <Redirect to="/orders" />
+      ) : null;
+      summary = (
+        <div>
+          {purchasedRedirect}
+          <CheckoutSummary
+            ingredients={this.props.ings}
+            checkoutCanceled={this.checkoutCanceledHandler}
+            checkoutContinued={this.checkoutContinuedHandler}
+          />
+          <Route
+            path={this.props.match.path + "/contact-data"}
+            component={ContactData}
+          />
+        </div>
+      );
+    }
+
+    return summary;
   }
 }
 
-export default Checkout;
+// mapStateToProps --> is a function that receive state as a param & Connect with reducer's state into reducer.js.
+// This function gets value of state into reducer & store it into props of this Component.
+const mapStateToProps = (state) => {
+  return {
+    // ings --> name of prop that will work with into this Component [this.props.ctr] & ings get from state of reducer.js.
+    // burgerBuilder and order are sub states. check index.js.
+    ings: state.burgerBuilder.ingredients,
+    purchased: state.order.purchased,
+  };
+};
+
+export default connect(mapStateToProps)(Checkout);
